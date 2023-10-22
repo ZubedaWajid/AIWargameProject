@@ -236,7 +236,17 @@ class Stats:
     total_seconds: float = 0.0
 
 ##############################################################################################################
+class TreeNode:
+    def __init__(self, board, is_maximizing_player):
+        self.board = board
+        self.is_maximizing_player = is_maximizing_player
+        self.children = []
+        self.score = None
 
+    def add_child(self, child):
+        self.children.append(child)
+
+##############################################################################################################
 @dataclass(slots=True)
 class Game:
     """Representation of the game state."""
@@ -569,6 +579,63 @@ class Game:
             return (0, move_candidates[0], 1)
         else:
             return (0, None, 0)
+
+    def generate_tree(board, depth, is_maximizing_player):
+        if depth == 0 or self.has_winner:
+            return TreeNode(board, is_maximizing_player)
+
+        node = TreeNode(board, is_maximizing_player)
+        legal_moves = (board, is_maximizing_player)
+        for move in legal_moves:
+            new_board = self.perform_move(move)
+            child = generate_tree(new_board, depth - 1, not is_maximizing_player)
+            node.add_child(child)
+
+        return node
+    def heuristic_e0(game: Game) -> float:
+        player1 = Player.Attacker
+        player2 = Player.Defender
+        VP1 = 3 * game.count_by_type(player1,UnitType.Virus)
+        TP1 = 3 * game.count_by_type(player1,UnitType.Tech)
+        FP1 = 3 * game.count_by_type(player1,UnitType.Firewall)
+        PP1 = 3 * game.count_by_type(player1,UnitType.Program)
+        AIP1 = 9999 * game.count_by_type(player1,UnitType.AI)
+
+        VP2 = 3 * game.count_by_type(player2, UnitType.Virus)
+        TP2 = 3 * game.count_by_type(player2, UnitType.Tech)
+        FP2 = 3 * game.count_by_type(player2, UnitType.Firewall)
+        PP2 = 3 * game.count_by_type(player2, UnitType.Program)
+        AIP2 = 9999 * game.count_by_type(player2, UnitType.AI)
+        result = VP1 + TP1 + FP1 + PP1 + AIP1 - VP2 - TP2 - FP2 - PP2 - AIP2
+        return result
+
+
+    def minimax(node, depth, Min, Max):
+        if depth == 0:
+            node.score = Game.heuristic_e0(node.board)
+            return node.score
+
+        if node.is_maximizing_player:
+            max_eval = -float('inf')
+            for child in node.children:
+                child_eval = minimax(child, depth - 1, Min, Max)
+                max_eval = max(max_eval, child_eval)
+                Min = max(Min, child_eval)
+                if Max <= Min:
+                    break
+            node.score = max_eval
+            return max_eval
+        else:
+            min_eval = float('inf')
+            for child in node.children:
+                child_eval = minimax(child, depth - 1, Min, Max)
+                min_eval = min(min_eval, child_eval)
+                Max = min(Max, child_eval)
+                if Max <= Min:
+                    break
+            node.score = min_eval
+            return min_eval
+
 
     def suggest_move(self) -> CoordPair | None:
         """Suggest the next move using minimax alpha beta. TODO: REPLACE RANDOM_MOVE WITH PROPER GAME LOGIC!!!"""
