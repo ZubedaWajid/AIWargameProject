@@ -616,21 +616,63 @@ class Game:
         
         attacker_ai_unit = next((unit for unit in game.player_units(player1) if unit[1].type == UnitType.AI), None)
         if attacker_ai_unit is not None and not attacker_ai_unit[1].is_alive():
-          return float('inf') 
+          return float('-inf') 
         defender_ai_unit = next((unit for unit in game.player_units(player2) if unit[1].type == UnitType.AI), None)
         if defender_ai_unit is not None and not defender_ai_unit[1].is_alive():
-            return ('-inf')  
+            return float ('inf')  
         HealthP1 = sum(unit.health(unit) for unit in game.player_units(player1)) 
         HealthP2 = sum(unit.health(unit) for unit in game.player_units(player2))
         
         return HealthP1 - HealthP2
         
+    def heuristic_e2(game: Game)-> float:
+        player1 = Player.Attacker
+        player2 = Player.Defender
         
+        attacker_ai_unit = next((unit for unit in game.player_units(player1) if unit[1].type == UnitType.AI), None)
+        if attacker_ai_unit is not None and not attacker_ai_unit[1].is_alive():
+          return float('-inf') 
+        defender_ai_unit = next((unit for unit in game.player_units(player2) if unit[1].type == UnitType.AI), None)
+        if defender_ai_unit is not None and not defender_ai_unit[1].is_alive():
+            return float ('inf')  
+
+        # Evaluate the number of units for each player
+        num_units_p1 = len(game.player_units(player1))
+        num_units_p2 = len(game.player_units(player2))
+
+        # Calculate the total health of each player's units
+        total_health_p1 = sum(unit.health for _, unit in game.player_units(player1))
+        total_health_p2 = sum(unit.health for _, unit in game.player_units(player2))
+
+        # Evaluate the average health per unit for each player
+        avg_health_per_unit_p1 = total_health_p1 / (num_units_p1 + 1)  # +1 to avoid division by zero
+        avg_health_per_unit_p2 = total_health_p2 / (num_units_p2 + 1)
+
+        # Evaluate the total damage potential of each player's units
+        total_damage_p1 = sum(unit.damage for _, unit in game.player_units(player1))
+        total_damage_p2 = sum(unit.damage for _, unit in game.player_units(player2))
+
+        # Evaluate the average distance of each player's units to the nearest enemy unit
+        avg_distance_to_enemy_p1 = sum(min(coord.distance(coord2) for coord2, _ in game.player_units(player2)) for coord, _ in game.player_units(player1)) / (num_units_p1 + 1)
+        avg_distance_to_enemy_p2 = sum(min(coord.distance(coord2) for coord2, _ in game.player_units(player1)) for coord, _ in game.player_units(player2)) / (num_units_p2 + 1)
+
+        # Calculate a composite score based on the above factors
+        score_p1 = (
+            num_units_p1 * 1000 + total_health_p1 + avg_health_per_unit_p1 +
+            total_damage_p1 + (1 / avg_distance_to_enemy_p1)
+        )
+        score_p2 = (
+            num_units_p2 * 1000 + total_health_p2 + avg_health_per_unit_p2 +
+            total_damage_p2 + (1 / avg_distance_to_enemy_p2)
+        )
+
+        return score_p1 - score_p2
+
         
         
     def minimax(node, depth, Min, Max):
         if depth == 0:
-            node.score = Game.heuristic_e1(node.board)
+            node.score = Game.heuristic_e2(node.board)
             return node.score
 
         if node.is_maximizing_player:
