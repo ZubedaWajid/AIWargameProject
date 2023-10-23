@@ -607,12 +607,30 @@ class Game:
         PP2 = 3 * game.count_by_type(player2, UnitType.Program)
         AIP2 = 9999 * game.count_by_type(player2, UnitType.AI)
         result = VP1 + TP1 + FP1 + PP1 + AIP1 - VP2 - TP2 - FP2 - PP2 - AIP2
+        
         return result
 
-
+    def heuristic_e1(game: Game) -> float:
+        player1 = Player.Attacker
+        player2 = Player.Defender
+        
+        attacker_ai_unit = next((unit for unit in game.player_units(player1) if unit[1].type == UnitType.AI), None)
+        if attacker_ai_unit is not None and not attacker_ai_unit[1].is_alive():
+          return float('inf') 
+        defender_ai_unit = next((unit for unit in game.player_units(player2) if unit[1].type == UnitType.AI), None)
+        if defender_ai_unit is not None and not defender_ai_unit[1].is_alive():
+            return ('-inf')  
+        HealthP1 = sum(unit.health(unit) for unit in game.player_units(player1)) 
+        HealthP2 = sum(unit.health(unit) for unit in game.player_units(player2))
+        
+        return HealthP1 - HealthP2
+        
+        
+        
+        
     def minimax(node, depth, Min, Max):
         if depth == 0:
-            node.score = Game.heuristic_e0(node.board)
+            node.score = Game.heuristic_e1(node.board)
             return node.score
 
         if node.is_maximizing_player:
@@ -713,7 +731,7 @@ def main():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--max_depth', type=int, help='maximum search depth')
     parser.add_argument('--max_time', type=float, help='maximum search time')
-    parser.add_argument('--game_type', type=str, default="manual", help='game type: auto|attacker|defender|manual')
+    parser.add_argument('--game_type', type=str, default="attacker", help='game type: auto|attacker|defender|manual')
     parser.add_argument('--broker', type=str, help='play via a game broker')
     args = parser.parse_args()
 
